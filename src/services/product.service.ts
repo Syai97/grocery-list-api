@@ -1,12 +1,40 @@
 import { Product } from "../models";
 import { WhereAttributeHash } from "sequelize/types";
 
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 export class ProductService {
-  index = ({ where, query }: { where?: WhereAttributeHash; query?: any }): Promise<any> => {
-    if (query.limit && query.offset)
-      return Product.findAndCountAll({ where, limit: query.limit, offset: query.offset });
+  index = ({ query }: { where?: WhereAttributeHash; query?: any }): Promise<any> => {
+    if (query.limit && query.offset && query.sort) {
+      if (query.search)
+        return Product.findAndCountAll({
+          where: {
+            [Op.or]: [
+              {
+                brand: {
+                  [Op.iLike]: `%${query.search}%`,
+                },
+              },
+              {
+                name: {
+                  [Op.iLike]: `%${query.search}%`,
+                },
+              },
+            ],
+          },
+          limit: query.limit,
+          offset: query.offset,
+          order: [["name", query.sort]],
+        });
 
-    return Product.findAndCountAll({ where });
+      return Product.findAndCountAll({
+        limit: query.limit,
+        offset: query.offset,
+        order: [["name", query.sort]],
+      });
+    }
+
+    return Product.findAndCountAll();
   };
 
   find = (id: string): Promise<any> => {
